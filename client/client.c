@@ -21,7 +21,7 @@ int bufsize;
 
 int usage()
 {
-    fprintf(stderr, "Usage: client ip_address port bufsize_kB n_loop\n");
+    fprintf(stderr, "Usage: client ip_address port bufsize_kB\n");
     return 0;
 }
 
@@ -31,6 +31,7 @@ void print_result(int signo)
     double run_time;
     double tp;
 
+    fprintf(stderr, "print_result\n");
     gettimeofday(&end, NULL);
     timersub(&end, &begin, &diff);
     run_time = diff.tv_sec + 0.000001*diff.tv_usec;
@@ -45,7 +46,7 @@ void print_result(int signo)
 
 int main(int argc, char *argv[])
 {
-    int i, c;
+    int c;
     int n;
     unsigned char *buf;
     char *remote;
@@ -76,7 +77,6 @@ int main(int argc, char *argv[])
     remote  = argv[0];
     port    = get_num(argv[1]);
     bufsize = get_num(argv[2]);
-    n_loop  = get_num(argv[3]);
 
     bufsize = 1024*bufsize; /* kB */
     buf = (unsigned char *)malloc(bufsize);
@@ -94,9 +94,12 @@ int main(int argc, char *argv[])
     }
     
     gettimeofday(&begin, NULL);
-    for (i = 0; i < n_loop; i++) {
+    for ( ; ; ) {
         n = write(sockfd, buf, bufsize);
         so_far_bytes += n;
+        if (n < 0) {
+            err(1, "write");
+        }
     }
 
     return 0;
