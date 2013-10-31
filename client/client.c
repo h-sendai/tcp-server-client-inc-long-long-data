@@ -35,7 +35,6 @@ void print_result(int signo)
     timersub(&end, &begin, &diff);
     run_time = diff.tv_sec + 0.000001*diff.tv_usec;
     tp = (double)so_far_bytes / run_time / 1024.0 / 1024.0;
-    printf("so_far_bytes: %lld\n", so_far_bytes);
     printf("bufsize: %d kB RunTime: %.3f sec ThroughPut: %.3f MB/s\n", bufsize / 1024, run_time, tp);
 
     exit(0);
