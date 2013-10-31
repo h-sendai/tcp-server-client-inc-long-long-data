@@ -21,7 +21,8 @@ int bufsize;
 
 int usage()
 {
-    fprintf(stderr, "Usage: client ip_address port bufsize_kB\n");
+    fprintf(stderr, "Usage: client ip_address port bufsize\n");
+    fprintf(stderr, "use k, m for bufsize in kilo, mega\n");
     return 0;
 }
 
@@ -76,7 +77,6 @@ int main(int argc, char *argv[])
     port    = get_num(argv[1]);
     bufsize = get_num(argv[2]);
 
-    bufsize = 1024*bufsize; /* kB */
     buf = (unsigned char *)malloc(bufsize);
     if (buf == NULL) {
         err(1, "malloc for buf");
