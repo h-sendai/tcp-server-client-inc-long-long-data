@@ -31,7 +31,6 @@ void print_result(int signo)
     double run_time;
     double tp;
 
-    fprintf(stderr, "print_result\n");
     gettimeofday(&end, NULL);
     timersub(&end, &begin, &diff);
     run_time = diff.tv_sec + 0.000001*diff.tv_usec;
