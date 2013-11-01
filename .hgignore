@@ -5,3 +5,4 @@ syntax: glob
 *~
 server/server
 client/client
+data
