@@ -10,11 +10,16 @@
 #include "my_signal.h"
 #include "my_socket.h"
 #include "accept_connection.h"
+#include "get_timestamp_us.h"
+
+int debug = 0;
 
 int child_proc(int connfd)
 {
     int n;
     unsigned char buf[2*1024*1024];
+    unsigned long long n_loop = 0;
+    char timestamp[128];
 
     for ( ; ; ) {
         n = read(connfd, buf, sizeof(buf));
@@ -23,6 +28,13 @@ int child_proc(int connfd)
         }
         else if (n == 0) {
             exit(0);
+        }
+        if (debug >= 1) {
+            if (n_loop % 1000 == 0) {
+                get_timestamp_us(timestamp, sizeof(timestamp));
+                fprintf(stderr, "%s debug: %d bytes read\n", timestamp, n);
+            }
+            n_loop ++;
         }
     }
     return 0;
@@ -46,6 +58,19 @@ int main(int argc, char *argv[])
     struct sockaddr_in remote;
     socklen_t addr_len;
     int listenfd;
+    int c;
+
+    while ( (c = getopt(argc, argv, "d")) != -1) {
+        switch (c) {
+            case 'd':
+                debug += 1;
+                break;
+            default:
+                break;
+        }
+    }
+    argc -= optind;
+    argv += optind;
 
     my_signal(SIGCHLD, sig_chld);
     my_signal(SIGPIPE, SIG_IGN);
