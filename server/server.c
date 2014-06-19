@@ -13,6 +13,7 @@
 #include "get_timestamp_us.h"
 
 int debug = 0;
+int enable_quick_ack = 0;
 
 int child_proc(int connfd)
 {
@@ -21,7 +22,9 @@ int child_proc(int connfd)
     unsigned long long n_loop = 0;
     char timestamp[128];
 
+    int qack = 1;
     for ( ; ; ) {
+        setsockopt(connfd, IPPROTO_TCP, TCP_QUICKACK, &qack, sizeof(qack));
         n = read(connfd, buf, sizeof(buf));
         if (n < 0) {
             err(1, "read");
@@ -60,10 +63,13 @@ int main(int argc, char *argv[])
     int listenfd;
     int c;
 
-    while ( (c = getopt(argc, argv, "d")) != -1) {
+    while ( (c = getopt(argc, argv, "dq")) != -1) {
         switch (c) {
             case 'd':
                 debug += 1;
+                break;
+            case 'q':
+                enable_quick_ack = 1;
                 break;
             default:
                 break;
