@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
     int sockfd = tcp_socket();
     int rcvbuf = get_so_rcvbuf(sockfd);
-    fprintf(stderr, "SO_RCVBUF: %d\n");
+    fprintf(stderr, "SO_RCVBUF: %d\n", rcvbuf);
 
     if (connect_tcp(sockfd, remote, port) < 0) {
         errx(1, "connect_tcp");
