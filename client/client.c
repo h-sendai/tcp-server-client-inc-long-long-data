@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     int sleep_usec = 0;
     bufsize = 1460;
 
-    while ( (c = getopt(argc, argv, "ds:t:")) != -1) {
+    while ( (c = getopt(argc, argv, "b:ds:t:")) != -1) {
         switch (c) {
             case 'b':
                 bufsize = get_num(optarg);
