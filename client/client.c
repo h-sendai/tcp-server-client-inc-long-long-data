@@ -53,8 +53,8 @@ int main(int argc, char *argv[])
     int port = 1234;
     int debug = 0;
     int run_sec = 10;
-    int bufsize = 1460;
     int sleep_usec = 0;
+    bufsize = 1460;
 
     while ( (c = getopt(argc, argv, "ds:t:")) != -1) {
         switch (c) {
