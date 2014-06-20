@@ -10,34 +10,47 @@
 #include "my_signal.h"
 #include "my_socket.h"
 #include "accept_connection.h"
-#include "get_timestamp_us.h"
+#include "get_num.h"
+#include "bz_usleep.h"
 
 int debug = 0;
 int enable_quick_ack = 0;
 
-int child_proc(int connfd)
+int child_proc(int connfd, int bufsize, int sleep_usec)
 {
     int n;
-    unsigned char buf[2*1024*1024];
-    unsigned long long n_loop = 0;
-    char timestamp[128];
+    unsigned char *buf;
 
-    int qack = 1;
+    buf = malloc(bufsize);
+    if (buf == NULL) {
+        err(1, "malloc sender buf in child_proc");
+    }
+
     for ( ; ; ) {
-        setsockopt(connfd, IPPROTO_TCP, TCP_QUICKACK, &qack, sizeof(qack));
-        n = read(connfd, buf, sizeof(buf));
+        if (enable_quick_ack) {
+            int qack = 1;
+            setsockopt(connfd, IPPROTO_TCP, TCP_QUICKACK, &qack, sizeof(qack));
+        }
+        n = write(connfd, buf, bufsize);
         if (n < 0) {
-            err(1, "read");
+            if (errno == ECONNRESET) {
+                warnx("connection reset by client");
+                break;
+            }
+            else if (errno == EPIPE) {
+                warnx("connection closed by client");
+                break;
+            }
+            else {
+                err(1, "write");
+            }
         }
         else if (n == 0) {
+            warnx("write returns 0");
             exit(0);
         }
-        if (debug >= 1) {
-            if (n_loop % 1000 == 0) {
-                get_timestamp_us(timestamp, sizeof(timestamp));
-                fprintf(stderr, "%s debug: %d bytes read\n", timestamp, n);
-            }
-            n_loop ++;
+        if (sleep_usec > 0) {
+            bz_usleep(sleep_usec);
         }
     }
     return 0;
@@ -54,6 +67,19 @@ void sig_chld(int signo)
     return;
 }
 
+int usage(void)
+{
+    char *msg =
+"Usage: server [-b bufsize (1460)] [-s sleep_usec (0)] [-q]\n"
+"-b bufsize:    one send size (may add k for kilo, m for mega)\n"
+"-s sleep_usec: sleep useconds after write\n"
+"-q:            enable quick ack\n";
+
+    fprintf(stderr, msg);
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     int port = 1234;
@@ -62,14 +88,25 @@ int main(int argc, char *argv[])
     socklen_t addr_len;
     int listenfd;
     int c;
+    int bufsize = 1460;
+    int sleep_usec = 0;
 
-    while ( (c = getopt(argc, argv, "dq")) != -1) {
+    while ( (c = getopt(argc, argv, "b:dhqs:")) != -1) {
         switch (c) {
+            case 'b':
+                bufsize = get_num(optarg);
+                break;
             case 'd':
                 debug += 1;
                 break;
+            case 'h':
+                usage();
+                exit(0);
             case 'q':
                 enable_quick_ack = 1;
+                break;
+            case 's':
+                sleep_usec = get_num(optarg);
                 break;
             default:
                 break;
@@ -97,7 +134,7 @@ int main(int argc, char *argv[])
             if (close(listenfd) < 0) {
                 err(1, "close listenfd");
             }
-            if (child_proc(connfd) < 0) {
+            if (child_proc(connfd, bufsize, sleep_usec) < 0) {
                 errx(1, "child_proc");
             }
             exit(0);

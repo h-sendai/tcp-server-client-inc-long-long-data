@@ -13,6 +13,7 @@
 #include "my_socket.h"
 #include "readn.h"
 #include "set_timer.h"
+#include "bz_usleep.h"
 
 struct timeval begin, end;
 unsigned long long so_far_bytes = 0;
@@ -21,7 +22,7 @@ int bufsize;
 
 int usage()
 {
-    fprintf(stderr, "Usage: client ip_address port bufsize\n");
+    fprintf(stderr, "Usage: client [-b bufsize (1460)] [-s sleep_usec (0)] ip_address\n");
     fprintf(stderr, "use k, m for bufsize in kilo, mega\n");
     return 0;
 }
@@ -49,14 +50,22 @@ int main(int argc, char *argv[])
     int n;
     unsigned char *buf;
     char *remote;
-    int port;
+    int port = 1234;
     int debug = 0;
     int run_sec = 10;
+    int bufsize = 1460;
+    int sleep_usec = 0;
 
-    while ( (c = getopt(argc, argv, "dt:")) != -1) {
+    while ( (c = getopt(argc, argv, "ds:t:")) != -1) {
         switch (c) {
+            case 'b':
+                bufsize = get_num(optarg);
+                break;
             case 'd':
                 debug = 1;
+                break;
+            case 's':
+                sleep_usec = get_num(optarg);
                 break;
             case 't':
                 run_sec = get_num(optarg);
@@ -68,14 +77,12 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc != 3) {
+    if (argc != 1) {
         usage();
         exit(1);
     }
 
     remote  = argv[0];
-    port    = get_num(argv[1]);
-    bufsize = get_num(argv[2]);
 
     buf = (unsigned char *)malloc(bufsize);
     if (buf == NULL) {
@@ -93,10 +100,18 @@ int main(int argc, char *argv[])
     
     gettimeofday(&begin, NULL);
     for ( ; ; ) {
-        n = write(sockfd, buf, bufsize);
+        n = readn(sockfd, buf, bufsize);
         so_far_bytes += n;
         if (n < 0) {
-            err(1, "write");
+            err(1, "read");
+        }
+        if (sleep_usec > 0) {
+            bz_usleep(sleep_usec);
+        }
+        if (debug) {
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+            fprintf(stderr, "%ld.%06ld read %d bytes\n", tv.tv_sec, tv.tv_usec, n);
         }
     }
 
