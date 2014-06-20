@@ -23,7 +23,7 @@ int sockfd;
 
 int usage()
 {
-    fprintf(stderr, "Usage: client [-b bufsize (1460)] [-s sleep_usec (0)] ip_address\n");
+    fprintf(stderr, "Usage: client [-b bufsize (1460)] [-s sleep_usec (0)] [-r so_rcvbuf] ip_address\n");
     fprintf(stderr, "use k, m for bufsize in kilo, mega\n");
     return 0;
 }
@@ -58,15 +58,19 @@ int main(int argc, char *argv[])
     int debug = 0;
     int run_sec = 10;
     int sleep_usec = 0;
+    int set_so_rcvbuf_size = 0;
     bufsize = 1460;
 
-    while ( (c = getopt(argc, argv, "b:ds:t:")) != -1) {
+    while ( (c = getopt(argc, argv, "b:dr:s:t:")) != -1) {
         switch (c) {
             case 'b':
                 bufsize = get_num(optarg);
                 break;
             case 'd':
                 debug = 1;
+                break;
+            case 'r':
+                set_so_rcvbuf_size = get_num(optarg);
                 break;
             case 's':
                 sleep_usec = get_num(optarg);
@@ -98,6 +102,9 @@ int main(int argc, char *argv[])
     set_timer(run_sec, 0, 0, 0);
 
     sockfd = tcp_socket();
+    if (set_so_rcvbuf_size > 0) {
+        set_so_rcvbuf(sockfd, set_so_rcvbuf_size);
+    }
     int rcvbuf = get_so_rcvbuf(sockfd);
     fprintf(stderr, "SO_RCVBUF: %d\n", rcvbuf);
 

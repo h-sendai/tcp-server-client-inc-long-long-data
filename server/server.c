@@ -15,6 +15,7 @@
 
 int debug = 0;
 int enable_quick_ack = 0;
+int set_so_sndbuf_size = 0;
 
 int child_proc(int connfd, int bufsize, int sleep_usec)
 {
@@ -26,6 +27,13 @@ int child_proc(int connfd, int bufsize, int sleep_usec)
         err(1, "malloc sender buf in child_proc");
     }
 
+    if (set_so_sndbuf_size > 0) {
+        set_so_sndbuf(connfd, set_so_sndbuf_size);
+    }
+
+    int so_snd_buf = get_so_sndbuf(connfd);
+    fprintf(stderr, "SO_SNDBUF: %d\n", so_snd_buf);
+
     for ( ; ; ) {
         if (enable_quick_ack) {
             int qack = 1;
@@ -33,6 +41,8 @@ int child_proc(int connfd, int bufsize, int sleep_usec)
         }
         n = write(connfd, buf, bufsize);
         if (n < 0) {
+            int so_snd_buf = get_so_sndbuf(connfd);
+            fprintf(stderr, "SO_SNDBUF: %d\n", so_snd_buf);
             if (errno == ECONNRESET) {
                 warnx("connection reset by client");
                 break;
@@ -70,10 +80,11 @@ void sig_chld(int signo)
 int usage(void)
 {
     char *msg =
-"Usage: server [-b bufsize (1460)] [-s sleep_usec (0)] [-q]\n"
+"Usage: server [-b bufsize (1460)] [-s sleep_usec (0)] [-q] [-S so_sndbuf]\n"
 "-b bufsize:    one send size (may add k for kilo, m for mega)\n"
 "-s sleep_usec: sleep useconds after write\n"
-"-q:            enable quick ack\n";
+"-q:            enable quick ack\n"
+"-S: so_sndbuf: set socket send buffer size\n";
 
     fprintf(stderr, msg);
 
@@ -91,7 +102,7 @@ int main(int argc, char *argv[])
     int bufsize = 1460;
     int sleep_usec = 0;
 
-    while ( (c = getopt(argc, argv, "b:dhqs:")) != -1) {
+    while ( (c = getopt(argc, argv, "b:dhqs:S:")) != -1) {
         switch (c) {
             case 'b':
                 bufsize = get_num(optarg);
@@ -107,6 +118,9 @@ int main(int argc, char *argv[])
                 break;
             case 's':
                 sleep_usec = get_num(optarg);
+                break;
+            case 'S':
+                set_so_sndbuf_size = get_num(optarg);
                 break;
             default:
                 break;
