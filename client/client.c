@@ -19,6 +19,7 @@ struct timeval begin, end;
 unsigned long long so_far_bytes = 0;
 int n_loop;
 int bufsize;
+int sockfd;
 
 int usage()
 {
@@ -32,6 +33,9 @@ void print_result(int signo)
     struct timeval diff;
     double run_time;
     double tp;
+
+    int rcvbuf = get_so_rcvbuf(sockfd);
+    fprintf(stderr, "SO_RCVBUF: %d\n", rcvbuf);
 
     gettimeofday(&end, NULL);
     timersub(&end, &begin, &diff);
@@ -93,7 +97,7 @@ int main(int argc, char *argv[])
     my_signal(SIGALRM, print_result);
     set_timer(run_sec, 0, 0, 0);
 
-    int sockfd = tcp_socket();
+    sockfd = tcp_socket();
     int rcvbuf = get_so_rcvbuf(sockfd);
     fprintf(stderr, "SO_RCVBUF: %d\n", rcvbuf);
 
