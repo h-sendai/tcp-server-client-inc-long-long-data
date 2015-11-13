@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
     int port = 1234;
     pid_t pid;
     struct sockaddr_in remote;
-    socklen_t addr_len;
+    socklen_t addr_len = sizeof(struct sockaddr_in);
     int listenfd;
     int c;
     int bufsize = 1460;
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     for ( ; ; ) {
         int connfd = accept(listenfd, (struct sockaddr *)&remote, &addr_len);
         if (connfd < 0) {
-            errx(1, "accept_connection");
+            err(1, "accept");
         }
         
         pid = fork();
