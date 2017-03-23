@@ -23,7 +23,7 @@ int sockfd;
 
 int usage()
 {
-    fprintf(stderr, "Usage: client [-b bufsize (1460)] [-s sleep_usec (0)] [-r so_rcvbuf] ip_address\n");
+    fprintf(stderr, "Usage: client [-b bufsize (1460)] [-p port (1234)] [-s sleep_usec (0)] [-r so_rcvbuf] ip_address\n");
     fprintf(stderr, "use k, m for bufsize in kilo, mega\n");
     return 0;
 }
@@ -61,13 +61,16 @@ int main(int argc, char *argv[])
     int set_so_rcvbuf_size = 0;
     bufsize = 1460;
 
-    while ( (c = getopt(argc, argv, "b:dr:s:t:")) != -1) {
+    while ( (c = getopt(argc, argv, "b:dp:r:s:t:")) != -1) {
         switch (c) {
             case 'b':
                 bufsize = get_num(optarg);
                 break;
             case 'd':
                 debug = 1;
+                break;
+            case 'p':
+                port = strtol(optarg, NULL, 0);
                 break;
             case 'r':
                 set_so_rcvbuf_size = get_num(optarg);
