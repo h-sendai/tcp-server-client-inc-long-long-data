@@ -15,6 +15,7 @@
 #include "set_timer.h"
 #include "bz_usleep.h"
 #include "logUtil.h"
+#include "set_cpu.h"
 
 struct timeval begin, end;
 unsigned long long so_far_bytes = 0;
@@ -24,7 +25,7 @@ int sockfd;
 
 int usage()
 {
-    fprintf(stderr, "Usage: client [-b bufsize (1460)] [-p port (1234)] [-s sleep_usec (0)] [-r so_rcvbuf] ip_address\n");
+    fprintf(stderr, "Usage: client [-b bufsize (1460)] [-c cpu_num ][-p port (1234)] [-s sleep_usec (0)] [-r so_rcvbuf] ip_address\n");
     fprintf(stderr, "use k, m for bufsize in kilo, mega\n");
     return 0;
 }
@@ -61,11 +62,15 @@ int main(int argc, char *argv[])
     int sleep_usec = 0;
     int set_so_rcvbuf_size = 0;
     bufsize = 1460;
+    int cpu_num = -1;
 
-    while ( (c = getopt(argc, argv, "b:dp:r:s:t:")) != -1) {
+    while ( (c = getopt(argc, argv, "b:c:dp:r:s:t:")) != -1) {
         switch (c) {
             case 'b':
                 bufsize = get_num(optarg);
+                break;
+            case 'c':
+                cpu_num = get_num(optarg);
                 break;
             case 'd':
                 debug = 1;
@@ -95,6 +100,11 @@ int main(int argc, char *argv[])
     }
 
     remote  = argv[0];
+    if (cpu_num != -1) {
+        if (set_cpu(cpu_num) < 0) {
+            errx(1, "set_cpu fail: cpu_num %d", cpu_num);
+        }
+    }
 
     buf = (unsigned char *)malloc(bufsize);
     if (buf == NULL) {
