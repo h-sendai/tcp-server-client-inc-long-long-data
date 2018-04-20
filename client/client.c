@@ -14,6 +14,7 @@
 #include "readn.h"
 #include "set_timer.h"
 #include "bz_usleep.h"
+#include "logUtil.h"
 
 struct timeval begin, end;
 unsigned long long so_far_bytes = 0;
@@ -35,13 +36,13 @@ void print_result(int signo)
     double tp;
 
     int rcvbuf = get_so_rcvbuf(sockfd);
-    fprintf(stderr, "SO_RCVBUF: %d\n", rcvbuf);
+    fprintfwt(stderr, "client: SO_RCVBUF: %d (final)\n", rcvbuf);
 
     gettimeofday(&end, NULL);
     timersub(&end, &begin, &diff);
     run_time = diff.tv_sec + 0.000001*diff.tv_usec;
     tp = (double)so_far_bytes / run_time / 1024.0 / 1024.0;
-    printf("bufsize: %.3f kB RunTime: %.3f sec ThroughPut: %.3f MB/s\n", bufsize / 1024.0, run_time, tp);
+    fprintfwt(stdout, "bufsize: %.3f kB RunTime: %.3f sec ThroughPut: %.3f MB/s\n", bufsize / 1024.0, run_time, tp);
 
     exit(0);
     
@@ -109,7 +110,7 @@ int main(int argc, char *argv[])
         set_so_rcvbuf(sockfd, set_so_rcvbuf_size);
     }
     int rcvbuf = get_so_rcvbuf(sockfd);
-    fprintf(stderr, "SO_RCVBUF: %d\n", rcvbuf);
+    fprintfwt(stderr, "client: SO_RCVBUF: %d (init)\n", rcvbuf);
 
     if (connect_tcp(sockfd, remote, port) < 0) {
         errx(1, "connect_tcp");

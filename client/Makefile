@@ -12,6 +12,7 @@ OBJS += readn.o
 OBJS += set_timer.o
 OBJS += accept_connection.o
 OBJS += bz_usleep.o
+OBJS += logUtil.o
 OBJS += $(PROG).o
 
 $(PROG): $(OBJS)

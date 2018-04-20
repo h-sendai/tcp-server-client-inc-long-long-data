@@ -12,6 +12,7 @@
 #include "accept_connection.h"
 #include "get_num.h"
 #include "bz_usleep.h"
+#include "logUtil.h"
 
 int debug = 0;
 int enable_quick_ack = 0;
@@ -32,7 +33,7 @@ int child_proc(int connfd, int bufsize, int sleep_usec)
     }
 
     int so_snd_buf = get_so_sndbuf(connfd);
-    fprintf(stderr, "SO_SNDBUF: %d\n", so_snd_buf);
+    fprintfwt(stderr, "server: SO_SNDBUF: %d (init)\n", so_snd_buf);
 
     for ( ; ; ) {
         if (enable_quick_ack) {
@@ -42,13 +43,13 @@ int child_proc(int connfd, int bufsize, int sleep_usec)
         n = write(connfd, buf, bufsize);
         if (n < 0) {
             int so_snd_buf = get_so_sndbuf(connfd);
-            fprintf(stderr, "SO_SNDBUF: %d\n", so_snd_buf);
+            fprintfwt(stderr, "server: SO_SNDBUF: %d (final)\n", so_snd_buf);
             if (errno == ECONNRESET) {
-                warnx("connection reset by client");
+                fprintfwt(stderr, "server: connection reset by client\n");
                 break;
             }
             else if (errno == EPIPE) {
-                warnx("connection closed by client");
+                fprintfwt(stderr, "server: connection reset by client\n");
                 break;
             }
             else {
