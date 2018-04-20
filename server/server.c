@@ -18,12 +18,26 @@ int debug = 0;
 int enable_quick_ack = 0;
 int set_so_sndbuf_size = 0;
 
+int print_result(struct timeval start, struct timeval stop, int so_snd_buf, unsigned long long send_bytes)
+{
+    struct timeval diff;
+    double elapse;
+
+    timersub(&stop, &start, &diff);
+    fprintfwt(stderr, "server: SO_SNDBUF: %d (final)\n", so_snd_buf);
+    elapse = diff.tv_sec + 0.000001*diff.tv_usec;
+    fprintfwt(stderr, "server: %.3f MB/s ( %lld bytes %ld.%06ld sec )\n",
+        (double) send_bytes / elapse  / 1024.0 / 1024.0,
+        send_bytes, diff.tv_sec, diff.tv_usec);
+
+    return 0;
+}
+
 int child_proc(int connfd, int bufsize, int sleep_usec)
 {
     int n;
     unsigned char *buf;
-    struct timeval start, stop, diff;
-    double elapse;
+    struct timeval start, stop;
     unsigned long long send_bytes = 0;
 
     buf = malloc(bufsize);
@@ -48,12 +62,7 @@ int child_proc(int connfd, int bufsize, int sleep_usec)
         if (n < 0) {
             gettimeofday(&stop, NULL);
             int so_snd_buf = get_so_sndbuf(connfd);
-            fprintfwt(stderr, "server: SO_SNDBUF: %d (final)\n", so_snd_buf);
-            timersub(&stop, &start, &diff);
-            elapse = diff.tv_sec + 0.000001*diff.tv_usec;
-            fprintfwt(stderr, "server: %.3f MB/s ( %lld bytes %ld.%06ld sec )\n",
-                (double) send_bytes / elapse  / 1024.0 / 1024.0,
-                send_bytes, diff.tv_sec, diff.tv_usec);
+            print_result(start, stop, so_snd_buf, send_bytes);
             if (errno == ECONNRESET) {
                 fprintfwt(stderr, "server: connection reset by client\n");
                 break;
