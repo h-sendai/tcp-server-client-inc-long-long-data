@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     bufsize = 1460;
     int cpu_num = -1;
 
-    while ( (c = getopt(argc, argv, "b:c:dp:r:s:t:")) != -1) {
+    while ( (c = getopt(argc, argv, "b:c:dhp:r:s:t:")) != -1) {
         switch (c) {
             case 'b':
                 bufsize = get_num(optarg);
@@ -74,6 +74,10 @@ int main(int argc, char *argv[])
                 break;
             case 'd':
                 debug = 1;
+                break;
+            case 'h':
+                usage();
+                exit(0);
                 break;
             case 'p':
                 port = strtol(optarg, NULL, 0);
