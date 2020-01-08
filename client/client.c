@@ -25,8 +25,20 @@ int sockfd;
 
 int usage()
 {
-    fprintf(stderr, "Usage: client [-b bufsize (1460)] [-c cpu_num ][-p port (1234)] [-s sleep_usec (0)] [-r so_rcvbuf] ip_address\n");
-    fprintf(stderr, "use k, m for bufsize in kilo, mega\n");
+    char msg[] = "Usage: client [options] ip_address\n"
+                 "Connect to server and read data.  Display through put before exit.\n"
+                 "\n"
+                 "options:\n"
+                 "-b BUFSIZE      read() buffer size (default: 1460). use k, m for kilo, mega\n"
+                 "-c CPU_NUM      running cpu num (default: none)\n"
+                 "-p PORT         port number (default: 1234)\n"
+                 "-r SO_RCVBUF    Socket Recv Bufsize (default: os default)\n"
+                 "-s SLEEP_USEC   sleep between each read() (default: don't sleep)\n"
+                 "-t SECONDS      running period (default: 10 seconds)\n"
+                 "-d              debug\n"
+                 "-h              display this help\n";
+
+    fprintf(stderr, "%s", msg);
     return 0;
 }
 
