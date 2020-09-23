@@ -35,6 +35,7 @@ int usage()
                  "-r SO_RCVBUF    Socket Recv Bufsize (default: os default)\n"
                  "-s SLEEP_USEC   sleep between each read() (default: don't sleep)\n"
                  "-t SECONDS      running period (default: 10 seconds)\n"
+                 "-v              verify incremental data\n"
                  "-d              debug\n"
                  "-h              display this help\n";
 
@@ -62,6 +63,29 @@ void print_result(int signo)
     return;
 }
 
+int verify_buf_inc_int(unsigned char *buf, int buflen)
+{
+    static unsigned int x = 0;
+    unsigned int *int_p = (unsigned int *)buf;
+
+    // XXX: does not meet buffer read from network
+    if ( (buflen % sizeof(int)) != 0) {
+        warnx("buflen: %d does not fit multiple of sizeof(int)", buflen);
+        return -1;
+    }
+
+    for (size_t i = 0; i < buflen/sizeof(int); ++i) {
+        if ( x != ntohl(*int_p) ) {
+            warnx("does not match: expected: %u , got: %u", x, ntohl(*int_p));
+            return -1;
+        }
+        x ++;
+        int_p ++;
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     int c;
@@ -75,8 +99,9 @@ int main(int argc, char *argv[])
     int set_so_rcvbuf_size = 0;
     bufsize = 1460;
     int cpu_num = -1;
+    int do_verify = 0;
 
-    while ( (c = getopt(argc, argv, "b:c:dhp:r:s:t:")) != -1) {
+    while ( (c = getopt(argc, argv, "b:c:dhp:r:s:t:v")) != -1) {
         switch (c) {
             case 'b':
                 bufsize = get_num(optarg);
@@ -102,6 +127,9 @@ int main(int argc, char *argv[])
                 break;
             case 't':
                 run_sec = get_num(optarg);
+                break;
+            case 'v':
+                do_verify = 1;
                 break;
             default:
                 break;
@@ -156,6 +184,11 @@ int main(int argc, char *argv[])
             struct timeval tv;
             gettimeofday(&tv, NULL);
             fprintf(stderr, "%ld.%06ld read %d bytes\n", tv.tv_sec, tv.tv_usec, n);
+        }
+        if (do_verify) {
+            if (verify_buf_inc_int(buf, bufsize) < 0) {
+                exit(0);
+            }
         }
     }
 
