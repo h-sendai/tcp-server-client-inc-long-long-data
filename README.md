@@ -1,3 +1,6 @@
-# TCP server and client example
+# TCP server and client
 
-tcp server, tcp clientの例題
+サーバー側が送るデータとして
+4バイト整数を順次インクリメントしたデータを送る。
+2^32-1を超えたら0にもどる。
+
