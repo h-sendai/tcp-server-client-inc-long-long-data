@@ -49,6 +49,18 @@ int fill_buf_inc_int(unsigned char *buf, int buflen)
         int_p ++;
     }
 
+// Test code.  Write invalid value at the head of the buffer
+#if 0
+    static int n_loop = 0;
+    if (n_loop == 4) {
+        buf[0] = 0xff;
+        buf[1] = 0xff;
+        buf[2] = 0xff;
+        buf[3] = 0xff;
+    }
+    n_loop ++;
+#endif
+
     return 0;
 }
 
