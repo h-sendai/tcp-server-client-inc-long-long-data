@@ -33,6 +33,25 @@ int print_result(struct timeval start, struct timeval stop, int so_snd_buf, unsi
     return 0;
 }
 
+int fill_buf_inc_int(unsigned char *buf, int buflen)
+{
+    static int x = 0;
+    int *int_p = (int *)buf;
+
+    if ( (buflen % sizeof(int)) != 0) {
+        warnx("buflen: %d does not fit multiple of sizeof(int)", buflen);
+        return -1;
+    }
+
+    for (size_t i = 0; i < buflen/sizeof(int); ++i) {
+        *int_p = htonl(x);
+        x ++;
+        int_p ++;
+    }
+
+    return 0;
+}
+
 int child_proc(int connfd, int bufsize, int sleep_usec)
 {
     int n;
@@ -58,6 +77,7 @@ int child_proc(int connfd, int bufsize, int sleep_usec)
             int qack = 1;
             setsockopt(connfd, IPPROTO_TCP, TCP_QUICKACK, &qack, sizeof(qack));
         }
+        fill_buf_inc_int(buf, bufsize);
         n = write(connfd, buf, bufsize);
         if (n < 0) {
             gettimeofday(&stop, NULL);
