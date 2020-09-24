@@ -22,6 +22,7 @@ unsigned long long so_far_bytes = 0;
 int n_loop;
 int bufsize;
 int sockfd;
+int debug = 0;
 
 int usage()
 {
@@ -65,15 +66,67 @@ void print_result(int signo)
 
 int verify_buf_inc_int(unsigned char *buf, int buflen)
 {
-    static unsigned int x = 0;
-    unsigned int *int_p = (unsigned int *)buf;
+    /*
+     * if last read() remainder byte len = 1 and data = 0x12; then
+     * remainder_buf[0] = 0x12;
+     * remainder_len    = 1
+     *
+     * Next verify_buf_inc_int() has to pad remainder_buf[1,2,3] and decode it
+     */
 
-    // XXX: does not meet buffer read from network
-    if ( (buflen % sizeof(int)) != 0) {
-        warnx("buflen: %d does not fit multiple of sizeof(int)", buflen);
-        return -1;
+    static unsigned char remainder_buf[4] = { 0, 0, 0, 0 };
+    static unsigned int  remainder_len    = 0;
+    static unsigned int x = 0;
+
+    if (debug) {
+        fprintf(stderr, "verify start. remainder_len: %u\n", remainder_len);
     }
 
+    /* 
+     * remainder_len != 0: 
+     * 前回の検証であまりバイトがあった場合の処理。
+     * bufにデータが十分あり、intを作れる場合と、bufにデータがあまりなく
+     * intを作れない場合がある。
+     * intを作れる場合は作って、bufポインタを移動、次のforループでの検証に
+     * すすむ。
+     * intが作れなかった場合remainder_bufに入れて終了。
+     */
+    if (remainder_len != 0) {
+        if (buflen >= (sizeof(int) - remainder_len)) { /* have enough data for padding */
+            for (size_t i = 0; i < sizeof(int) - remainder_len; ++i) {
+                remainder_buf[remainder_len + i] = buf[i];
+                if (debug) {
+                    fprintf(stderr, "padding at %ld\n", remainder_len + i);
+                }
+            }
+            unsigned int *int_p = (unsigned int *)remainder_buf;
+            if (x != ntohl(*int_p)) { // verificaiton failure
+                warnx("# does not match: expected: %u , got: %u", x, ntohl(*int_p));
+                return -1;
+            }
+            else { // verification success
+                if (debug) {
+                    fprintf(stderr, "remainder buf data: %u\n", x);
+                }
+                x ++;
+                buf += sizeof(int) - remainder_len;
+                buflen -= (sizeof(int) - remainder_len);
+            }
+        }
+        else { // padding only 
+            for (size_t i = 0; i < buflen; ++i) {
+                remainder_buf[remainder_len + i] = buf[i];
+                return 0;
+            }
+        }
+    }
+
+    unsigned int *int_p = (unsigned int *)buf;
+
+    /*
+     * このforループでintサイズ分どんどん検証する。
+     * あまりがあるかどうか調べるのはこのforループがぬけたあと。
+     */
     for (size_t i = 0; i < buflen/sizeof(int); ++i) {
         if ( x != ntohl(*int_p) ) {
             warnx("does not match: expected: %u , got: %u", x, ntohl(*int_p));
@@ -81,6 +134,27 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
         }
         x ++;
         int_p ++;
+    }
+
+    /*
+     * あまりバイトがあるかどうか調べて、あったらremainder_len, remainder_buf[]に
+     * 格納。次回のverify_buf_inc_int()呼び出しで使う。
+     */
+    remainder_len = (buflen % sizeof(int));
+    if (debug) {
+        fprintf(stderr, "next remainder_len: %d\n", remainder_len);
+    }
+    if (buflen % sizeof(int) != 0) {
+        for (size_t i = 0; i < remainder_len; ++i) {
+            if (debug) {
+                fprintf(stderr, "i: %ld\n", i);
+            }
+            unsigned int j = (buflen/sizeof(int))*sizeof(int) + i;
+            remainder_buf[i] = buf[j];
+            if (debug) {
+                fprintf(stderr, "buf index: %u\n", j);
+            }
+        }
     }
 
     return 0;
@@ -93,7 +167,6 @@ int main(int argc, char *argv[])
     unsigned char *buf;
     char *remote;
     int port = 1234;
-    int debug = 0;
     int run_sec = 10;
     int sleep_usec = 0;
     int set_so_rcvbuf_size = 0;
@@ -171,8 +244,13 @@ int main(int argc, char *argv[])
     }
     
     gettimeofday(&begin, NULL);
+    unsigned long read_count = 0;
     for ( ; ; ) {
         n = readn(sockfd, buf, bufsize);
+        if (debug) {
+            fprintf(stderr, "---> read_count: %ld read bytes: %d\n", read_count, n);
+        }
+        read_count += 1;
         so_far_bytes += n;
         if (n < 0) {
             err(1, "read");
@@ -180,13 +258,13 @@ int main(int argc, char *argv[])
         if (sleep_usec > 0) {
             bz_usleep(sleep_usec);
         }
-        if (debug) {
-            struct timeval tv;
-            gettimeofday(&tv, NULL);
-            fprintf(stderr, "%ld.%06ld read %d bytes\n", tv.tv_sec, tv.tv_usec, n);
-        }
+        //if (debug) {
+        //    struct timeval tv;
+        //    gettimeofday(&tv, NULL);
+        //    fprintf(stderr, "%ld.%06ld read %d bytes\n", tv.tv_sec, tv.tv_usec, n);
+        //}
         if (do_verify) {
-            if (verify_buf_inc_int(buf, bufsize) < 0) {
+            if (verify_buf_inc_int(buf, n) < 0) { // use n: may use read() instead of readn()
                 exit(0);
             }
         }
