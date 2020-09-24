@@ -106,7 +106,7 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
             }
             else { // verification success
                 if (debug) {
-                    fprintf(stderr, "remainder buf data: %u\n", x);
+                    fprintf(stderr, "verified data: %u\n", x);
                 }
                 x ++;
                 buf += sizeof(int) - remainder_len;
@@ -116,6 +116,10 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
         else { // padding only 
             for (size_t i = 0; i < buflen; ++i) {
                 remainder_buf[remainder_len + i] = buf[i];
+                if (debug) {
+                    fprintf(stderr, "padding at %ld\n", remainder_len + i);
+                }
+                remainder_len ++;
                 return 0;
             }
         }
@@ -132,6 +136,11 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
             warnx("does not match: expected: %u , got: %u", x, ntohl(*int_p));
             return -1;
         }
+        else {
+            if (debug) {
+                fprintf(stderr, "verified data: %u\n", x);
+            }
+        }
         x ++;
         int_p ++;
     }
@@ -146,14 +155,17 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
     }
     if (buflen % sizeof(int) != 0) {
         for (size_t i = 0; i < remainder_len; ++i) {
-            if (debug) {
-                fprintf(stderr, "i: %ld\n", i);
-            }
+            //if (debug) {
+                //fprintf(stderr, "i: %ld\n", i);
+            //}
             unsigned int j = (buflen/sizeof(int))*sizeof(int) + i;
             remainder_buf[i] = buf[j];
             if (debug) {
-                fprintf(stderr, "buf index: %u\n", j);
+                fprintf(stderr, "padding at %ld\n", i);
             }
+            //if (debug) {
+            //    fprintf(stderr, "buf index: %u\n", j);
+            //}
         }
     }
 
