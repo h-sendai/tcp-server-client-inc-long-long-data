@@ -74,7 +74,8 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
      * Next verify_buf_inc_int() has to pad remainder_buf[1,2,3] and decode it
      */
 
-    static unsigned char remainder_buf[4] = { 0, 0, 0, 0 };
+    // 0xff: enable finding bugs in early stage
+    static unsigned char remainder_buf[4] = { 0xff, 0xff, 0xff, 0xff };
     static unsigned int  remainder_len    = 0;
     static unsigned int x = 0;
 
