@@ -30,7 +30,7 @@ int usage()
                  "Connect to server and read data.  Display through put before exit.\n"
                  "\n"
                  "options:\n"
-                 "-b BUFSIZE      read() buffer size (default: 1460). use k, m for kilo, mega\n"
+                 "-b BUFSIZE      read() buffer size (default: 16k). use k, m for kilo, mega\n"
                  "-c CPU_NUM      running cpu num (default: none)\n"
                  "-p PORT         port number (default: 1234)\n"
                  "-r SO_RCVBUF    Socket Recv Bufsize (default: os default)\n"
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
     int run_sec = 10;
     int sleep_usec = 0;
     int set_so_rcvbuf_size = 0;
-    bufsize = 1460;
+    bufsize = 16*1024;
     int cpu_num = -1;
     int do_verify = 0;
 

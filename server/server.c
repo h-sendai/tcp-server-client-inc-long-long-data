@@ -135,7 +135,7 @@ void sig_chld(int signo)
 int usage(void)
 {
     char *msg =
-"Usage: server [-b bufsize (1460)] [-s sleep_usec (0)] [-q] [-S so_sndbuf]\n"
+"Usage: server [-b bufsize (16k)] [-s sleep_usec (0)] [-q] [-S so_sndbuf]\n"
 "-b bufsize:    one send size (may add k for kilo, m for mega)\n"
 "-s sleep_usec: sleep useconds after write\n"
 "-q:            enable quick ack\n"
@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
     socklen_t addr_len = sizeof(struct sockaddr_in);
     int listenfd;
     int c;
-    int bufsize = 1460;
+    int bufsize = 16*1024;
     int sleep_usec = 0;
 
     while ( (c = getopt(argc, argv, "b:dhqs:S:")) != -1) {
