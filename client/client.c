@@ -23,6 +23,7 @@ int n_loop;
 int bufsize;
 int sockfd;
 int debug = 0;
+char *progname = NULL;
 
 int usage()
 {
@@ -51,7 +52,7 @@ void print_result(int signo)
     double tp;
 
     int rcvbuf = get_so_rcvbuf(sockfd);
-    fprintfwt(stderr, "client: SO_RCVBUF: %d (final)\n", rcvbuf);
+    fprintfwt(stderr, "%s: SO_RCVBUF: %d (final)\n", progname, rcvbuf);
 
     gettimeofday(&end, NULL);
     timersub(&end, &begin, &diff);
@@ -102,7 +103,7 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
             }
             unsigned int *int_p = (unsigned int *)remainder_buf;
             if (x != ntohl(*int_p)) { // verificaiton failure
-                fprintfwt(stderr, "does not match: expected: %u , got: %u\n", x, ntohl(*int_p));
+                fprintfwt(stderr, "%s: does not match: expected: %u , got: %u\n", progname, x, ntohl(*int_p));
                 return -1;
             }
             else { // verification success
@@ -134,7 +135,7 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
      */
     for (size_t i = 0; i < buflen/sizeof(int); ++i) {
         if ( x != ntohl(*int_p) ) {
-            fprintfwt(stderr, "does not match: expected: %u , got: %u\n", x, ntohl(*int_p));
+            fprintfwt(stderr, "%s: does not match: expected: %u , got: %u\n", progname, x, ntohl(*int_p));
             return -1;
         }
         else {
@@ -186,6 +187,8 @@ int main(int argc, char *argv[])
     bufsize = 16*1024;
     int cpu_num = -1;
     int do_verify = 0;
+
+    progname = strrchr(argv[0], '/') + 1;
 
     while ( (c = getopt(argc, argv, "b:c:dhp:r:s:t:v")) != -1) {
         switch (c) {
@@ -250,7 +253,7 @@ int main(int argc, char *argv[])
         set_so_rcvbuf(sockfd, set_so_rcvbuf_size);
     }
     int rcvbuf = get_so_rcvbuf(sockfd);
-    fprintfwt(stderr, "client: SO_RCVBUF: %d (init)\n", rcvbuf);
+    fprintfwt(stderr, "%s: SO_RCVBUF: %d (init)\n", progname, rcvbuf);
 
     if (connect_tcp(sockfd, remote, port) < 0) {
         errx(1, "connect_tcp");
