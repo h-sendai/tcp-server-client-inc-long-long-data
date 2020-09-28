@@ -102,7 +102,7 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
             }
             unsigned int *int_p = (unsigned int *)remainder_buf;
             if (x != ntohl(*int_p)) { // verificaiton failure
-                warnx("# does not match: expected: %u , got: %u", x, ntohl(*int_p));
+                fprintfwt(stderr, "does not match: expected: %u , got: %u\n", x, ntohl(*int_p));
                 return -1;
             }
             else { // verification success
@@ -134,7 +134,7 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
      */
     for (size_t i = 0; i < buflen/sizeof(int); ++i) {
         if ( x != ntohl(*int_p) ) {
-            warnx("does not match: expected: %u , got: %u", x, ntohl(*int_p));
+            fprintfwt(stderr, "does not match: expected: %u , got: %u\n", x, ntohl(*int_p));
             return -1;
         }
         else {
