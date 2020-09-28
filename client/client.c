@@ -36,7 +36,7 @@ int usage()
                  "-p PORT         port number (default: 1234)\n"
                  "-r SO_RCVBUF    Socket Recv Bufsize (default: os default)\n"
                  "-s SLEEP_USEC   sleep between each read() (default: don't sleep)\n"
-                 "-t SECONDS      running period (default: 10 seconds)\n"
+                 "-t SECONDS      running period (default: 10 seconds.  0: forever)\n"
                  "-v              verify incremental data\n"
                  "-d              debug\n"
                  "-h              display this help\n";
@@ -245,8 +245,11 @@ int main(int argc, char *argv[])
     }
     memset(buf, 0, bufsize);
     
-    my_signal(SIGALRM, print_result);
-    set_timer(run_sec, 0, 0, 0);
+    if (run_sec > 0) {
+        my_signal(SIGALRM, print_result);
+        set_timer(run_sec, 0, 0, 0);
+    }
+    my_signal(SIGINT, print_result);
 
     sockfd = tcp_socket();
     if (set_so_rcvbuf_size > 0) {
