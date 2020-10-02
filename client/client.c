@@ -17,8 +17,9 @@
 #include "logUtil.h"
 #include "set_cpu.h"
 
-struct timeval begin, end;
-unsigned long long so_far_bytes = 0;
+struct timeval begin, end, prev, now;
+unsigned long long period_bytes = 0;
+unsigned long long total_bytes  = 0;
 int n_loop;
 int bufsize;
 int sockfd;
@@ -33,6 +34,8 @@ int usage()
                  "options:\n"
                  "-b BUFSIZE      read() buffer size (default: 16k). use k, m for kilo, mega\n"
                  "-c CPU_NUM      running cpu num (default: none)\n"
+                 "-i BYTES        print interval transfer rate after (more than) BYTES read" 
+                 "                if -t 0 (forever mode) (default 1GB)\n"
                  "-p PORT         port number (default: 1234)\n"
                  "-r SO_RCVBUF    Socket Recv Bufsize (default: os default)\n"
                  "-s SLEEP_USEC   sleep between each read() (default: don't sleep)\n"
@@ -57,12 +60,27 @@ void print_result(int signo)
     gettimeofday(&end, NULL);
     timersub(&end, &begin, &diff);
     run_time = diff.tv_sec + 0.000001*diff.tv_usec;
-    tp = (double)so_far_bytes / run_time / 1024.0 / 1024.0;
+    tp = (double)total_bytes / run_time / 1024.0 / 1024.0;
     fprintfwt(stdout, "bufsize: %.3f kB RunTime: %.3f sec ThroughPut: %.3f MB/s\n", bufsize / 1024.0, run_time, tp);
 
     exit(0);
     
     return;
+}
+
+int print_period(struct timeval now, struct timeval prev)
+{
+    struct timeval diff;
+    double run_time;
+    double tp;
+
+    timersub(&now, &prev, &diff);
+    run_time = diff.tv_sec + 0.000001*diff.tv_usec;
+    tp = (double)period_bytes / run_time / 1024.0 / 1024.0;
+    
+    fprintfwt(stdout, "%lld bytes read. %.3f MB/s\n", period_bytes, tp);
+
+    return 0;
 }
 
 int verify_buf_inc_int(unsigned char *buf, int buflen)
@@ -187,10 +205,11 @@ int main(int argc, char *argv[])
     bufsize = 16*1024;
     int cpu_num = -1;
     int do_verify = 0;
+    unsigned long long interval_bytes = 1*1024*1024*1024; /* 1GB */
 
     progname = strrchr(argv[0], '/') + 1;
 
-    while ( (c = getopt(argc, argv, "b:c:dhp:r:s:t:v")) != -1) {
+    while ( (c = getopt(argc, argv, "b:c:dhi:p:r:s:t:v")) != -1) {
         switch (c) {
             case 'b':
                 bufsize = get_num(optarg);
@@ -204,6 +223,9 @@ int main(int argc, char *argv[])
             case 'h':
                 usage();
                 exit(0);
+                break;
+            case 'i':
+                interval_bytes = get_num(optarg);
                 break;
             case 'p':
                 port = strtol(optarg, NULL, 0);
@@ -263,6 +285,7 @@ int main(int argc, char *argv[])
     }
     
     gettimeofday(&begin, NULL);
+    prev = begin;
     unsigned long read_count = 0;
     for ( ; ; ) {
         n = readn(sockfd, buf, bufsize);
@@ -270,7 +293,8 @@ int main(int argc, char *argv[])
             fprintf(stderr, "---> read_count: %ld read bytes: %d\n", read_count, n);
         }
         read_count += 1;
-        so_far_bytes += n;
+        total_bytes += n;
+        period_bytes += n;
         if (n < 0) {
             err(1, "read");
         }
@@ -285,6 +309,14 @@ int main(int argc, char *argv[])
         if (do_verify) {
             if (verify_buf_inc_int(buf, n) < 0) { // use n: may use read() instead of readn()
                 exit(0);
+            }
+        }
+        if (run_sec == 0) {
+            if (period_bytes > interval_bytes) {
+                gettimeofday(&now, NULL);
+                print_period(now, prev);
+                period_bytes = 0;
+                prev = now;
             }
         }
     }
