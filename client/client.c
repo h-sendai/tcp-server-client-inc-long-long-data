@@ -282,6 +282,12 @@ int main(int argc, char *argv[])
     }
     int rcvbuf = get_so_rcvbuf(sockfd);
     fprintfwt(stderr, "%s: SO_RCVBUF: %d (init)\n", progname, rcvbuf);
+    if (do_verify) {
+        fprintfwt(stderr, "Verify ON\n");
+    }
+    else {
+        fprintfwt(stderr, "Verify OFF\n");
+    }
 
     if (connect_tcp(sockfd, remote, port) < 0) {
         errx(1, "connect_tcp");
