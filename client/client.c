@@ -121,9 +121,9 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
                     fprintf(stderr, "padding at %ld\n", remainder_len + i);
                 }
             }
-            unsigned long *int_p = (unsigned long *)remainder_buf;
-            if (x != be64toh(*int_p)) { // verificaiton failure
-                fprintfwt(stderr, "%s: does not match: expected: %ld , got: %ld\n", progname, x, be64toh(*int_p));
+            unsigned long *long_p = (unsigned long *)remainder_buf;
+            if (x != be64toh(*long_p)) { // verificaiton failure
+                fprintfwt(stderr, "%s: does not match: expected: %ld , got: %ld\n", progname, x, be64toh(*long_p));
                 return -1;
             }
             else { // verification success
@@ -147,7 +147,7 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
         }
     }
 
-    unsigned long *int_p = (unsigned long *)buf;
+    unsigned long *long_p = (unsigned long *)buf;
 
     /*
      * このforループでintサイズ分どんどん検証する。
@@ -155,8 +155,8 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
      */
     for (size_t i = 0; i < buflen/sizeof(long); ++i) {
         // if ( x != ntohl(*int_p) ) {
-        if ( x != be64toh(*int_p) ) {
-            fprintfwt(stderr, "%s: does not match: expected: %lu , got: %lu\n", progname, x, be64toh(*int_p));
+        if ( x != be64toh(*long_p) ) {
+            fprintfwt(stderr, "%s: does not match: expected: %lu , got: %lu\n", progname, x, be64toh(*long_p));
             return -1;
         }
         else {
@@ -165,7 +165,7 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
             }
         }
         x ++;
-        int_p ++;
+        long_p ++;
     }
 
     /*
