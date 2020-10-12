@@ -7,6 +7,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <endian.h>
+
 #include "get_num.h"
 #include "host_info.h"
 #include "my_signal.h"
@@ -94,12 +96,12 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
      */
 
     // 0xff: enable finding bugs in early stage
-    static unsigned char remainder_buf[4] = { 0xff, 0xff, 0xff, 0xff };
-    static unsigned int  remainder_len    = 0;
-    static unsigned int x = 0;
+    static unsigned char remainder_buf[8] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    static unsigned long remainder_len    = 0;
+    static unsigned long x = 0;
 
     if (debug) {
-        fprintf(stderr, "verify start. remainder_len: %u\n", remainder_len);
+        fprintf(stderr, "verify start. remainder_len: %lu\n", remainder_len);
     }
 
     /* 
@@ -112,25 +114,25 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
      * intが作れなかった場合remainder_bufに入れて終了。
      */
     if (remainder_len != 0) {
-        if (buflen >= (sizeof(int) - remainder_len)) { /* have enough data for padding */
-            for (size_t i = 0; i < sizeof(int) - remainder_len; ++i) {
+        if (buflen >= (sizeof(long) - remainder_len)) { /* have enough data for padding */
+            for (size_t i = 0; i < sizeof(long) - remainder_len; ++i) {
                 remainder_buf[remainder_len + i] = buf[i];
                 if (debug) {
                     fprintf(stderr, "padding at %ld\n", remainder_len + i);
                 }
             }
-            unsigned int *int_p = (unsigned int *)remainder_buf;
-            if (x != ntohl(*int_p)) { // verificaiton failure
-                fprintfwt(stderr, "%s: does not match: expected: %u , got: %u\n", progname, x, ntohl(*int_p));
+            unsigned long *int_p = (unsigned long *)remainder_buf;
+            if (x != be64toh(*int_p)) { // verificaiton failure
+                fprintfwt(stderr, "%s: does not match: expected: %ld , got: %ld\n", progname, x, be64toh(*int_p));
                 return -1;
             }
             else { // verification success
                 if (debug) {
-                    fprintf(stderr, "verified data: %u\n", x);
+                    fprintf(stderr, "verified data: %lu\n", x);
                 }
                 x ++;
-                buf += sizeof(int) - remainder_len;
-                buflen -= (sizeof(int) - remainder_len);
+                buf += sizeof(long) - remainder_len;
+                buflen -= (sizeof(long) - remainder_len);
             }
         }
         else { // padding only 
@@ -145,20 +147,21 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
         }
     }
 
-    unsigned int *int_p = (unsigned int *)buf;
+    unsigned long *int_p = (unsigned long *)buf;
 
     /*
      * このforループでintサイズ分どんどん検証する。
      * あまりがあるかどうか調べるのはこのforループがぬけたあと。
      */
-    for (size_t i = 0; i < buflen/sizeof(int); ++i) {
-        if ( x != ntohl(*int_p) ) {
-            fprintfwt(stderr, "%s: does not match: expected: %u , got: %u\n", progname, x, ntohl(*int_p));
+    for (size_t i = 0; i < buflen/sizeof(long); ++i) {
+        // if ( x != ntohl(*int_p) ) {
+        if ( x != be64toh(*int_p) ) {
+            fprintfwt(stderr, "%s: does not match: expected: %lu , got: %lu\n", progname, x, be64toh(*int_p));
             return -1;
         }
         else {
             if (debug) {
-                fprintf(stderr, "verified data: %u\n", x);
+                fprintf(stderr, "verified data: %lu\n", x);
             }
         }
         x ++;
@@ -169,16 +172,16 @@ int verify_buf_inc_int(unsigned char *buf, int buflen)
      * あまりバイトがあるかどうか調べて、あったらremainder_len, remainder_buf[]に
      * 格納。次回のverify_buf_inc_int()呼び出しで使う。
      */
-    remainder_len = (buflen % sizeof(int));
+    remainder_len = (buflen % sizeof(long));
     if (debug) {
-        fprintf(stderr, "next remainder_len: %d\n", remainder_len);
+        fprintf(stderr, "next remainder_len: %lu\n", remainder_len);
     }
-    if (buflen % sizeof(int) != 0) {
+    if (buflen % sizeof(long) != 0) {
         for (size_t i = 0; i < remainder_len; ++i) {
             //if (debug) {
                 //fprintf(stderr, "i: %ld\n", i);
             //}
-            unsigned int j = (buflen/sizeof(int))*sizeof(int) + i;
+            unsigned int j = (buflen/sizeof(long))*sizeof(long) + i;
             remainder_buf[i] = buf[j];
             if (debug) {
                 fprintf(stderr, "padding at %ld\n", i);
