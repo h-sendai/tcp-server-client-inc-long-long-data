@@ -81,6 +81,7 @@ int print_period(struct timeval now, struct timeval prev)
     tp = (double)period_bytes / run_time / 1024.0 / 1024.0;
     
     fprintfwt(stdout, "%lld bytes read. %.3f MB/s\n", period_bytes, tp);
+    fflush(stdout);
 
     return 0;
 }
