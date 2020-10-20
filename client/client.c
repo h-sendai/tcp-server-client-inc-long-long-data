@@ -70,17 +70,19 @@ void print_result(int signo)
     return;
 }
 
-int print_period(struct timeval now, struct timeval prev)
+int print_period(struct timeval now, struct timeval prev, struct timeval start)
 {
-    struct timeval diff;
-    double run_time;
+    struct timeval diff, elapsed;
+    double run_interval;
     double tp;
 
     timersub(&now, &prev, &diff);
-    run_time = diff.tv_sec + 0.000001*diff.tv_usec;
-    tp = (double)period_bytes / run_time / 1024.0 / 1024.0;
+    timersub(&now, &start, &elapsed);
+    run_interval = diff.tv_sec + 0.000001*diff.tv_usec;
+    tp = (double)period_bytes / run_interval / 1024.0 / 1024.0;
     
-    fprintfwt(stdout, "%lld bytes read. %.3f MB/s\n", period_bytes, tp);
+    //fprintfwt(stdout, "%lld bytes read. %.3f MB/s\n", period_bytes, tp);
+    printf("%ld.%06ld %lld bytes read. %.3f MB/s\n", elapsed.tv_sec, elapsed.tv_usec, period_bytes, tp);
     fflush(stdout);
 
     return 0;
@@ -297,6 +299,9 @@ int main(int argc, char *argv[])
     gettimeofday(&begin, NULL);
     prev = begin;
     unsigned long read_count = 0;
+    struct timeval start;
+    gettimeofday(&start, NULL);
+
     for ( ; ; ) {
         n = readn(sockfd, buf, bufsize);
         if (debug) {
@@ -324,7 +329,7 @@ int main(int argc, char *argv[])
         if (run_sec == 0) {
             if (period_bytes > interval_bytes) {
                 gettimeofday(&now, NULL);
-                print_period(now, prev);
+                print_period(now, prev, start);
                 period_bytes = 0;
                 prev = now;
             }
